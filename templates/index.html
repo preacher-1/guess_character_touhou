@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}开字母游戏 - 游客端{% endblock %}
+
+{% block content %}
+<div class="game-container">
+    <h1 class="text-center mb-4">开字母游戏</h1>
+    <div id="game-state">
+        <div class="guessed-chars">
+            <strong>已猜字母：</strong>
+            <span id="guessed-chars"></span>
+        </div>
+        <div id="questions"></div>
+    </div>
+    <div class="text-center mt-4">
+        <a href="/admin" class="btn btn-primary">管理员入口</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function updateGameState() {
+        fetch('/api/game/state')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('guessed-chars').textContent = data.guessed_chars.join(', ');
+                const questionsDiv = document.getElementById('questions');
+                questionsDiv.innerHTML = '';
+                data.templates.forEach((template, index) => {
+                    const questionDiv = document.createElement('div');
+                    questionDiv.className = 'question';
+                    questionDiv.textContent = `${index + 1}. ${template}`;
+                    questionsDiv.appendChild(questionDiv);
+                });
+                if (data.is_game_over) {
+                    const gameOverDiv = document.createElement('div');
+                    gameOverDiv.className = 'game-over';
+                    gameOverDiv.textContent = '游戏结束！';
+                    questionsDiv.appendChild(gameOverDiv);
+                }
+            });
+    }
+
+    // 每3秒更新一次游戏状态
+    updateGameState();
+    setInterval(updateGameState, 2000);
+</script>
+{% endblock %}

@@ -1,0 +1,189 @@
+{% extends "base.html" %} {% block title %}开字母游戏 - 管理员面板{% endblock %}
+{% block content %}
+<div class="game-container">
+	<h1 class="text-center mb-4">管理员控制面板</h1>
+
+	<div class="mb-4">
+		<h3>开始新游戏</h3>
+		<div class="input-group">
+			<input
+				type="number"
+				id="num-questions"
+				class="form-control"
+				placeholder="题目数量"
+				min="1"
+				max="10"
+				value="5"
+			/>
+			<button class="btn btn-primary" onclick="startGame()">
+				开始游戏
+			</button>
+			<button class="btn btn-danger" onclick="restartGame()">
+				重启游戏
+			</button>
+		</div>
+	</div>
+
+	<div class="mb-4">
+		<h3>游戏状态</h3>
+		<div class="guessed-chars">
+			<strong>已猜字母：</strong>
+			<span id="guessed-chars"></span>
+		</div>
+		<div id="questions"></div>
+	</div>
+
+	<div class="mb-4">
+		<h3>答案</h3>
+		<div id="answers"></div>
+	</div>
+
+	<div class="mb-4">
+		<h3>操作</h3>
+		<div class="input-group mb-3">
+			<input
+				type="text"
+				id="guess-char"
+				class="form-control"
+				placeholder="输入要猜的字母"
+				maxlength="1"
+				oninput="validateGuessInput(this)"
+			/>
+			<button class="btn btn-success" onclick="guessChar()">
+				猜字母
+			</button>
+		</div>
+		<div class="input-group">
+			<input
+				type="number"
+				id="show-answer"
+				class="form-control"
+				placeholder="输入要显示的题目序号"
+				min="1"
+			/>
+			<button class="btn btn-warning" onclick="showAnswer()">
+				显示答案
+			</button>
+		</div>
+	</div>
+
+	<div class="text-center">
+		<a href="/" class="btn btn-outline-secondary">返回首页</a>
+	</div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+	function validateGuessInput(input) {
+		if (input.value.length > 1) {
+			alert("只能输入一个字母！");
+			input.value = input.value.slice(0, 1);
+		}
+	}
+
+	function startGame() {
+		const numQuestions = document.getElementById("num-questions").value;
+		fetch("/api/game/start", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ num_questions: numQuestions }),
+		})
+			.then((response) => response.json())
+			.then((data) => {
+				updateGameState(data);
+				updateAnswers();
+			});
+	}
+
+	function restartGame() {
+		startGame();
+	}
+
+	function guessChar() {
+		const char = document.getElementById("guess-char").value;
+		if (!char) return;
+		if (char.length > 1) {
+			alert("只能输入一个字母！");
+			return;
+		}
+
+		fetch("/api/game/guess", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ char: char }),
+		})
+			.then((response) => response.json())
+			.then((data) => {
+				updateGameState(data);
+				document.getElementById("guess-char").value = "";
+			});
+	}
+
+	function showAnswer() {
+		const num = document.getElementById("show-answer").value;
+		if (!num) return;
+
+		fetch("/api/game/show", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ num: num }),
+		})
+			.then((response) => response.json())
+			.then((data) => {
+				updateGameState(data);
+				document.getElementById("show-answer").value = "";
+			});
+	}
+
+	function updateGameState(data) {
+		document.getElementById("guessed-chars").textContent =
+			data.guessed_chars.join(", ");
+		const questionsDiv = document.getElementById("questions");
+		questionsDiv.innerHTML = "";
+		data.templates.forEach((template, index) => {
+			const questionDiv = document.createElement("div");
+			questionDiv.className = "question";
+			questionDiv.textContent = `${index + 1}. ${template}`;
+			questionsDiv.appendChild(questionDiv);
+		});
+		if (data.is_game_over) {
+			const gameOverDiv = document.createElement("div");
+			gameOverDiv.className = "game-over";
+			gameOverDiv.textContent = "游戏结束！";
+			questionsDiv.appendChild(gameOverDiv);
+		}
+	}
+
+	function updateAnswers() {
+		fetch("/api/game/answers")
+			.then((response) => response.json())
+			.then((data) => {
+				const answersDiv = document.getElementById("answers");
+				answersDiv.innerHTML = "";
+				data.answers.forEach((answer, index) => {
+					const answerDiv = document.createElement("div");
+					answerDiv.className = "answer";
+					answerDiv.textContent = `${index + 1}. ${answer}`;
+					answersDiv.appendChild(answerDiv);
+				});
+			});
+	}
+
+	// 每3秒更新一次游戏状态
+	setInterval(() => {
+		fetch("/api/game/state")
+			.then((response) => response.json())
+			.then((data) => {
+				updateGameState(data);
+			});
+	}, 2000);
+
+	// 初始加载答案
+	updateAnswers();
+</script>
+{% endblock %}
