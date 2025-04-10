@@ -13,7 +13,6 @@
     - `Win+R`打开运行，输入`powershell`或`cmd`打开终端
       ![](static/1.png)
     - 在主机终端输入`ipconfig`，找到 IPv4 地址就是主机 IP
-      ![](static/2.png)
     - 在手机端浏览器`http://localhost:5000`
 5. 参看[网络访问配置指南](#网络访问配置指南)第二条配置 Windows 防火墙
 
